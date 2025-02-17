@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>GEMS Robot</title>
+        <style>
+
+            body, html {
+                overflow: hidden;
+            }
+            body{
+                display: flex;
+                width: 100vw;
+                height: 100vh;
+                margin: 0;
+                font-family: Arial, Helvetica, sans-serif;
+            }
+            #output{
+                display: flex;
+                flex-direction: column;
+                width: 33vw;
+                text-align: center;
+            }
+            #output_top{
+                display: flex;
+                flex-direction: column;
+                height: 50vh;
+                justify-content: center;
+                align-items: center;
+            }
+            #erasmus{
+                font-size: 5vw;
+                font-weight:normal;
+                margin: 0;
+            }
+            #gems{
+                font-size: 10vw;
+                font-weight:bolder;
+                margin: 0;
+            }
+            #output_bottom{
+                display: flex;
+                height: 50vh;
+
+            }
+            #output_bottom_left{
+                display: flex;
+                align-items: center;
+                justify-content: left;
+                height: 50vh;
+                width: 18vw;
+                font-size: 5vw;
+                font-weight:bold;
+            }
+            #output_bottom_right{
+                display: flex;
+                align-items: center;
+                justify-content: right;
+                height: 50vh;
+                width: 18vw;
+                font-size: 5vw;
+                font-weight:bold;
+            }
+            .slider_input{
+                margin-top: 10vh;
+                width: 33vw;
+                height: 80vh;
+            }
+            .slider_input input[type="range"]{
+                -webkit-appearance: none;
+                margin-right: 14vw;
+                margin-left: 12vw;
+                width: 7vw;
+                height: 79vh;
+                writing-mode: vertical-lr;
+                direction: rtl;
+                background: #ddd;
+                border: 0.5vw solid #000000;
+                border-radius: 5vw;
+            }
+            .slider_input input[type="range"]::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                width: 5vw;
+                height: 5vw;
+                background: #000000;
+                border-radius: 50%;
+                cursor: pointer;
+                border: 0.5vw solid #000000;
+            }
+            .slider_input input[type="range"]::-moz-range-thumb {
+                width: 5vw;
+                height: 5vw;
+                background: #000000;
+                border-radius: 50%;
+                cursor: pointer;
+                border: 0.5vw solid #000000;
+            }
+            .middle-tick {
+                position: absolute;
+                width: 100vw;
+                height: 0.5vw;
+                background: #000000;
+                top: 50vh;
+                left: 0vw;
+                z-index: -1;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="slider_input">
+            <input type="range" id="slider_l" min="-1023" max="1023" value="0">
+        </div>
+        <div id="output">
+            <div id="output_top">
+                <p id="erasmus">Erasmus+</p>
+                <p id="gems">GEMS</p>
+            </div>
+            <div id="output_bottom">
+                <div id="output_bottom_left">
+                    <p id="obl">0</p>
+                </div>
+                <div id="output_bottom_right">
+                    <p id="obr">0</p>
+                </div>
+            </div>
+        </div>
+        <div class="slider_input">
+            <input type="range" id="slider_r" min="-1023" max="1023" value="0">
+        </div>
+        <div class="middle-tick"></div>
+
+        <script>
+            const touchMap = new Map();
+            const odr = document.getElementById('output_bottom_right');
+            const odl = document.getElementById('output_bottom_left');
+
+            function update_slider(x, event) {
+                for (const touch of event.changedTouches) {
+                    const slider = touchMap.get(touch.identifier);
+                    if (slider == x) {
+                        const rect = slider.getBoundingClientRect();
+                        const touchY = touch.clientY;
+                        const percentage = 1 - (touchY - rect.top) / rect.height;
+                        const value = 2 * 1023 * percentage - 1023
+                        slider.value = Math.round(value);
+                    }
+                }
+            }
+
+            const slider_r = document.getElementById('slider_r');
+            slider_r.value = 0;
+            slider_r.addEventListener('touchstart', (event) => {
+                event.preventDefault();
+                for (const touch of event.changedTouches) {
+                    touchMap.set(touch.identifier, slider_r);
+                }
+                update_slider(slider_r, event);
+                odr.textContent = slider_r.value;
+            });
+            slider_r.addEventListener('touchmove', (event) => {
+                event.preventDefault();
+                update_slider(slider_r, event);
+                odr.textContent = slider_r.value;
+            });
+            slider_r.addEventListener('touchend', (event) => {
+                event.preventDefault();
+                slider_r.value = 0;
+                odr.textContent = slider_r.value;
+            });
+            const slider_l = document.getElementById('slider_l');
+            slider_l.value = 0;
+            slider_l.addEventListener('touchstart', (event) => {
+                event.preventDefault();
+                for (const touch of event.changedTouches) {
+                    touchMap.set(touch.identifier, slider_l);
+                }
+                update_slider(slider_l, event);
+                odl.textContent = slider_l.value;
+            });
+            slider_l.addEventListener('touchmove', (event) => {
+                event.preventDefault();
+                update_slider(slider_l, event);
+                odl.textContent = slider_l.value;
+            });
+            slider_l.addEventListener('touchend', (event) => {
+                event.preventDefault();
+                slider_l.value = 0;
+                odl.textContent = slider_l.value;
+            });
+
+            function sendData() {
+                const data = { L_value: slider_l.value, R_value: slider_r.value };
+
+                fetch('http://192.168.3.1/api', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Success:', data);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            }
+            setInterval( sendData, 200 );
+        </script>
+    </body>
+</html>
+
